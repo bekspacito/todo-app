@@ -1,8 +1,11 @@
 package edu.myrza.todoapp.controller;
 
 import edu.myrza.todoapp.exceptions.BussinesException;
-import edu.myrza.todoapp.model.dto.*;
-import edu.myrza.todoapp.model.entity.Folder;
+import edu.myrza.todoapp.model.dto.auth.LoginRequest;
+import edu.myrza.todoapp.model.dto.auth.LoginResponse;
+import edu.myrza.todoapp.model.dto.auth.RegistrationRequest;
+import edu.myrza.todoapp.model.dto.auth.RegistrationResponse;
+import edu.myrza.todoapp.model.entity.FolderRecord;
 import edu.myrza.todoapp.model.entity.User;
 import edu.myrza.todoapp.service.FolderService;
 import edu.myrza.todoapp.service.UserService;
@@ -74,7 +77,7 @@ public class AuthenticationController {
         User user = userService.createUser(username, password, email);
 
         // Create root folder for a user
-        Folder root = folderService.prepareUserRootFolder(user);
+        FolderRecord root = folderService.prepareUserRootFolder(user);
 
         // If the execution reached here then everything went fine
         String token = jwtUtil.generateToken(user);

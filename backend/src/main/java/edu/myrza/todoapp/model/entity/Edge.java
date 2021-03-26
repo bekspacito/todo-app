@@ -27,7 +27,7 @@ public class Edge {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ancestor")
-    private Folder ancestor;
+    private FolderRecord ancestor;
 
     private String descendant;
 

@@ -11,9 +11,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "folder")
-public class Folder {
-
-    public enum Status { OK, DELETED };
+public class FolderRecord {
 
     @Id
     private String id;
@@ -22,11 +20,14 @@ public class Folder {
 
     private LocalDateTime createdAt;
 
+    private LocalDateTime updatedAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    @Enumerated(EnumType.STRING)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "status_id")
     private Status status;
 
 }

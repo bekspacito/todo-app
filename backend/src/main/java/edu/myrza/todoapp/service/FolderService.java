@@ -1,11 +1,10 @@
 package edu.myrza.todoapp.service;
 
 import edu.myrza.todoapp.exceptions.SystemException;
-import edu.myrza.todoapp.model.entity.Edge;
-import edu.myrza.todoapp.model.entity.Folder;
-import edu.myrza.todoapp.model.entity.Status;
-import edu.myrza.todoapp.model.entity.User;
+import edu.myrza.todoapp.model.dto.files.FileFolderDto;
+import edu.myrza.todoapp.model.entity.*;
 import edu.myrza.todoapp.repos.EdgeRepository;
+import edu.myrza.todoapp.repos.FileRepository;
 import edu.myrza.todoapp.repos.FolderRepository;
 import edu.myrza.todoapp.repos.StatusRepository;
 import edu.myrza.todoapp.util.FileSystemUtil;
@@ -15,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -24,6 +24,8 @@ public class FolderService {
 
     private final EdgeRepository edgeRepository;
     private final FolderRepository folderRepository;
+    private final FileRepository fileRepository;
+    private final StatusRepository statusRepository;
     private final FileSystemUtil fileSystemUtil;
 
     @Autowired
@@ -31,15 +33,18 @@ public class FolderService {
             FileSystemUtil fileSystemUtil,
             EdgeRepository edgeRepository,
             FolderRepository folderRepository,
+            FileRepository fileRepository,
             StatusRepository statusRepository)
     {
+        this.fileRepository = fileRepository;
         this.fileSystemUtil = fileSystemUtil;
         this.edgeRepository = edgeRepository;
         this.folderRepository = folderRepository;
+        this.statusRepository = statusRepository;
     }
 
     // TODO : Make sure usernames are unique. (data invariant)
-    public Folder prepareUserRootFolder(User user) {
+    public FolderRecord prepareUserRootFolder(User user) {
 
         try {
             // Create an actual folder/directory in fyle_system
@@ -47,67 +52,83 @@ public class FolderService {
             fileSystemUtil.createUserRootFolder(rootFolderName);
 
             // Save a record about the created root folder in db
-            Folder rootFolder = new Folder();
-            rootFolder.setId(rootFolderName);
-            rootFolder.setName(rootFolderName);
-            rootFolder.setCreatedAt(LocalDateTime.now());
-            rootFolder.setOwner(user);
-            rootFolder.setStatus(Folder.Status.OK);
+            FolderRecord rootFolderRecord = new FolderRecord();
+            rootFolderRecord.setId(rootFolderName);
+            rootFolderRecord.setName(rootFolderName);
 
-            return folderRepository.save(rootFolder);
+            LocalDateTime _now = LocalDateTime.now();
+            rootFolderRecord.setCreatedAt(_now);
+            rootFolderRecord.setUpdatedAt(_now);
+
+            rootFolderRecord.setOwner(user);
+            rootFolderRecord.setStatus(statusRepository.findByCode(Status.Code.ENABLED));
+
+            return folderRepository.save(rootFolderRecord);
         } catch (IOException ex) {
             throw new SystemException(ex, "Error creating a root folder for a user [" + user.getUsername() + "]");
         }
     }
 
-    public Set<Folder> serveSubfolders(String folderId) {
-        return edgeRepository.serveSubfolders(folderId, Edge.DESC_TYPE.FOLDER, Edge.EDGE_TYPE.DIRECT);
-    }
-
     @Transactional
-    public Folder createFolder(User user, String parentId, String folderName) {
+    public FolderRecord createFolder(User user, String parentId, String folderName) {
 
-        // First we create folder
-        Folder folder = new Folder();
-        folder.setId(UUID.randomUUID().toString());
-        folder.setName(folderName);
-        folder.setCreatedAt(LocalDateTime.now());
-        folder.setOwner(user);
-        folder.setStatus(Folder.Status.OK);
+        // First we create folderRecord
+        FolderRecord folderRecord = new FolderRecord();
+        folderRecord.setId(UUID.randomUUID().toString());
+        folderRecord.setName(folderName);
 
-        Folder newFolder = folderRepository.save(folder);
+        LocalDateTime _now = LocalDateTime.now();
+        folderRecord.setCreatedAt(_now);
+        folderRecord.setUpdatedAt(_now);
+        folderRecord.setOwner(user);
+        folderRecord.setStatus(statusRepository.findByCode(Status.Code.ENABLED));
+
+        FolderRecord newFolderRecord = folderRepository.save(folderRecord);
         // Then we create edges
 
-        // access all of the ancestors of 'parent' folder
+        // access all of the ancestors of 'parent' folderRecord
         Set<Edge> ancestorsEdges = edgeRepository.serveAncestors(parentId).stream()
-                        .map(ancestor -> new Edge(UUID.randomUUID().toString(), ancestor, newFolder.getId(), Edge.DESC_TYPE.FOLDER, Edge.EDGE_TYPE.INDIRECT, user))
+                        .map(ancestor -> new Edge(UUID.randomUUID().toString(), ancestor, newFolderRecord.getId(), Edge.DESC_TYPE.FOLDER, Edge.EDGE_TYPE.INDIRECT, user))
                         .collect(Collectors.toSet());
 
         Edge parentEdge = folderRepository.findById(parentId)
-                            .map(parent -> new Edge(UUID.randomUUID().toString(), parent, newFolder.getId(), Edge.DESC_TYPE.FOLDER, Edge.EDGE_TYPE.DIRECT, user))
-                            .orElseThrow(() -> new RuntimeException("No folder with id [" + parentId + "] is found"));
+                            .map(parent -> new Edge(UUID.randomUUID().toString(), parent, newFolderRecord.getId(), Edge.DESC_TYPE.FOLDER, Edge.EDGE_TYPE.DIRECT, user))
+                            .orElseThrow(() -> new RuntimeException("No folderRecord with id [" + parentId + "] is found"));
 
         ancestorsEdges.add(parentEdge);
 
         //save new edges
         edgeRepository.saveAll(ancestorsEdges);
 
-        return newFolder;
+        return newFolderRecord;
     }
 
     @Transactional
     public void deleteFolder(String folderId) {
-        // access all descendant folders and mark them 'deleted'
-        for (Folder folder : edgeRepository.serveFolderDescendants(folderId)) {
-            folder.setStatus(Folder.Status.DELETED);
+
+        Status deleted = statusRepository.findByCode(Status.Code.DELETED);
+        Set<FolderRecord> folders = edgeRepository.serveFolderDescendants(folderId);
+        Set<FileRecord> files = edgeRepository.serveFileDescendants(folderId);
+
+        // mark all of the descendant folders as 'deleted'
+        for (FolderRecord folderRecord : folders) {
+            folderRecord.setStatus(deleted);
         }
+
+        // mark all of the descendant files as 'deleted'
+        for (FileRecord fileRecord : files) {
+            fileRecord.setStatus(deleted);
+        }
+
+        folderRepository.saveAll(folders);
+        fileRepository.saveAll(files);
     }
 
     @Transactional
-    public Folder renameFolder(String folderId, String newName) {
-        Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new RuntimeException("No folder with id [" + folderId + "] is found"));
-        folder.setName(newName);
-        return folderRepository.save(folder);
+    public FolderRecord renameFolder(String folderId, String newName) {
+        FolderRecord folderRecord = folderRepository.findById(folderId).orElseThrow(() -> new RuntimeException("No folderRecord with id [" + folderId + "] is found"));
+        folderRecord.setName(newName);
+        return folderRepository.save(folderRecord);
     }
 
 }

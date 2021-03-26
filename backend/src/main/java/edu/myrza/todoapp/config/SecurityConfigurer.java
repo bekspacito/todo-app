@@ -17,14 +17,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 
 @EnableWebSecurity
-public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+public class SecurityConfigurer extends WebSecurityConfigurerAdapter {
 
     private final UserService userDetailsService;
 
     private final JwtRequestFilter jwtRequestFilter;
 
     @Autowired
-    public SecurityConfiguration(UserService userDetailsService, JwtRequestFilter jwtRequestFilter) {
+    public SecurityConfigurer(UserService userDetailsService, JwtRequestFilter jwtRequestFilter) {
         this.userDetailsService = userDetailsService;
         this.jwtRequestFilter = jwtRequestFilter;
     }
@@ -39,12 +39,12 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
 
-        String[] userAllowedURIs = { "/folder/**" };
+        String[] userAllowedURIs = { "/folder/**","/file/**" };
 
         http.csrf().disable().authorizeRequests()
-                .antMatchers("/","/register","/login","static/**").permitAll()
-                .antMatchers("/test/admin").hasRole("ADMIN") // only admin
-                .antMatchers(userAllowedURIs).hasRole("USER") // only admin
+                .antMatchers("/","/register","/login","static/**",
+                "/file").permitAll()
+                .antMatchers(userAllowedURIs).hasRole("USER") // only user
                 .antMatchers("/logout").hasAnyRole("USER", "ADMIN") // EITHER admin OR user
                 .and()
                 // No session is created and maintained

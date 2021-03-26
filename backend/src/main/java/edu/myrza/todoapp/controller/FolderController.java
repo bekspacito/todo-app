@@ -1,14 +1,16 @@
 package edu.myrza.todoapp.controller;
 
-import edu.myrza.todoapp.model.entity.Folder;
+import edu.myrza.todoapp.model.dto.files.FileFolderDto;
+import edu.myrza.todoapp.model.entity.FolderRecord;
 import edu.myrza.todoapp.model.entity.User;
+import edu.myrza.todoapp.service.FileService;
 import edu.myrza.todoapp.service.FolderService;
 import edu.myrza.todoapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.Set;
+import java.util.List;
 
 @RestController
 @RequestMapping("/folder")
@@ -16,20 +18,28 @@ public class FolderController {
 
     private final UserService userService;
     private final FolderService folderService;
+    private final FileService fileService;
 
     @Autowired
-    public FolderController(FolderService folderService, UserService userService) {
+    public FolderController(
+            FolderService folderService,
+            FileService fileService,
+            UserService userService)
+    {
         this.folderService = folderService;
         this.userService = userService;
+        this.fileService = fileService;
     }
 
     @GetMapping
-    public Set<Folder> accessFolderContent(@RequestParam("folderId") String folderId) {
-        return folderService.serveSubfolders(folderId);
+    public List<FileFolderDto> serveFiles(Principal principal, @RequestParam("folderId") String folderId) {
+        User user = userService.loadUserByUsername(principal.getName());
+
+        return folderService.serveFolderContent(user, folderId);
     }
 
     @PostMapping("/rename")
-    public Folder renameFolder(
+    public FolderRecord renameFolder(
             @RequestParam("folderId") String folderId,
             @RequestParam("newName") String newName)
     {
@@ -37,7 +47,7 @@ public class FolderController {
     }
 
     @PostMapping
-    public Folder createFolder(
+    public FolderRecord createFolder(
             Principal principal,
             @RequestParam("parentFolderId") String parentId,
             @RequestParam("folderName") String folderName)

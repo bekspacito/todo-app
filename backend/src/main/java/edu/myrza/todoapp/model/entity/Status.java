@@ -12,7 +12,7 @@ import javax.persistence.*;
 @Table(name = "status")
 public class Status {
 
-    public enum Code { ENABLED, DISABLED };
+    public enum Code { ENABLED, DISABLED, DELETED }
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "status_id_gen")

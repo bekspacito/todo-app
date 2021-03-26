@@ -1,6 +1,7 @@
 -- Initialize statuses
 insert into status (id, code) values ((select nextval('status_seq')), 'ENABLED');
 insert into status (id, code) values ((select nextval('status_seq')), 'DISABLED');
+insert into status (id, code) values ((select nextval('status_seq')), 'DELETED');
 
 -- Initialize roles
 insert into role (id, code) values ((select nextval('role_seq')), 'ROLE_ADMIN');
