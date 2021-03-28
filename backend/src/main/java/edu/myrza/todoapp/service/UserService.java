@@ -7,7 +7,6 @@ import edu.myrza.todoapp.repos.RoleRepository;
 import edu.myrza.todoapp.repos.StatusRepository;
 import edu.myrza.todoapp.repos.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;

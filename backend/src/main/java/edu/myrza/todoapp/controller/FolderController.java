@@ -1,6 +1,6 @@
 package edu.myrza.todoapp.controller;
 
-import edu.myrza.todoapp.model.dto.files.FileFolderDto;
+import edu.myrza.todoapp.model.dto.files.FileRecordDto;
 import edu.myrza.todoapp.model.entity.FolderRecord;
 import edu.myrza.todoapp.model.entity.User;
 import edu.myrza.todoapp.service.FileService;
@@ -32,7 +32,7 @@ public class FolderController {
     }
 
     @GetMapping
-    public List<FileFolderDto> serveFiles(Principal principal, @RequestParam("folderId") String folderId) {
+    public List<FileRecordDto> serveFiles(Principal principal, @RequestParam("folderId") String folderId) {
         User user = userService.loadUserByUsername(principal.getName());
 
         return folderService.serveFolderContent(user, folderId);

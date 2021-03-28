@@ -5,9 +5,9 @@ import edu.myrza.todoapp.model.dto.auth.LoginRequest;
 import edu.myrza.todoapp.model.dto.auth.LoginResponse;
 import edu.myrza.todoapp.model.dto.auth.RegistrationRequest;
 import edu.myrza.todoapp.model.dto.auth.RegistrationResponse;
-import edu.myrza.todoapp.model.entity.FolderRecord;
+import edu.myrza.todoapp.model.dto.files.FileRecordDto;
 import edu.myrza.todoapp.model.entity.User;
-import edu.myrza.todoapp.service.FolderService;
+import edu.myrza.todoapp.service.FileService;
 import edu.myrza.todoapp.service.UserService;
 import edu.myrza.todoapp.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,17 +24,17 @@ public class AuthenticationController {
 
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
-    private final FolderService folderService;
+    private final FileService fileService;
     private final JwtUtil jwtUtil;
 
     @Autowired
     public AuthenticationController(
             AuthenticationManager authenticationManager,
             UserService userService,
-            FolderService folderService,
+            FileService fileService,
             JwtUtil jwtUtil)
     {
-        this.folderService = folderService;
+        this.fileService = fileService;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.userService = userService;
@@ -77,7 +77,7 @@ public class AuthenticationController {
         User user = userService.createUser(username, password, email);
 
         // Create root folder for a user
-        FolderRecord root = folderService.prepareUserRootFolder(user);
+        FileRecordDto root = fileService.prepareUserRootFolder(user);
 
         // If the execution reached here then everything went fine
         String token = jwtUtil.generateToken(user);

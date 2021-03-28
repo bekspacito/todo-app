@@ -1,11 +1,13 @@
 package edu.myrza.todoapp.model.entity;
 
+import edu.myrza.todoapp.model.enums.EdgeType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.io.File;
 
 /*
     CLOSURE TABLE - technique for storing hierarchical structures in db
@@ -19,22 +21,19 @@ import javax.persistence.*;
 @AllArgsConstructor
 public class Edge {
 
-    public enum DESC_TYPE { FILE, FOLDER };
-    public enum EDGE_TYPE { DIRECT, INDIRECT };
-
     @Id
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ancestor")
-    private FolderRecord ancestor;
+    private FileRecord ancestor;
 
-    private String descendant;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "descendant")
+    private FileRecord descendant;
 
     @Enumerated(EnumType.STRING)
-    private DESC_TYPE descType;
-    @Enumerated(EnumType.STRING)
-    private EDGE_TYPE edgeType;
+    private EdgeType edgeType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "edge_owner_id")
