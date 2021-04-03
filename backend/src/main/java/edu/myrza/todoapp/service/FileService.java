@@ -18,7 +18,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -44,6 +43,28 @@ public class FileService {
         this.edgeRepository = edgeRepository;
     }
 
+    // USER RELATED OPERATIONS
+
+    // TODO : Make sure usernames are unique. (data invariant)
+    @Transactional
+    public FileRecordDto prepareUserRootFolder(User user) {
+
+        try {
+            // Create an actual folder/directory in fyle_system
+            String rootFolderName = user.getUsername();
+            fileSystemUtil.createUserRootFolder(rootFolderName);
+
+            Status enabled = statusRepository.findByCode(Status.Code.ENABLED);
+
+            // Save a record about the created root folder in db
+            FileRecord rootFolderRecord = FileRecord.createFolder(rootFolderName, rootFolderName, user, enabled);
+
+            return toDto(fileRepository.save(rootFolderRecord));
+        } catch (IOException ex) {
+            throw new SystemException(ex, "Error creating a root folder for a user [" + user.getUsername() + "]");
+        }
+    }
+
     // FOLDER/FILE OPERATIONS
 
     @Transactional
@@ -61,6 +82,8 @@ public class FileService {
 
             // mark the file as 'deleted'
             file.setStatus(deleted);
+
+            // if the file is 'file' then just save it and continue
             if(!file.getFileType().equals(FileType.FOLDER)) {
                 fileRepository.save(file);
                 continue;
@@ -80,8 +103,8 @@ public class FileService {
     }
 
     @Transactional
-    public Optional<FileRecordDto> renameFile(User user, String folderId, String newName) {
-        Optional<FileRecord> optFileRecord = fileRepository.findById(folderId);
+    public Optional<FileRecordDto> renameFile(User user, String fileId, String newName) {
+        Optional<FileRecord> optFileRecord = fileRepository.findById(fileId);
         if(optFileRecord.isPresent()) {
             FileRecord fileRecord = optFileRecord.get();
             fileRecord.setName(newName);
@@ -108,47 +131,13 @@ public class FileService {
 
     // FOLDER OPERATIONS
 
-    // TODO : Make sure usernames are unique. (data invariant)
-    @Transactional
-    public FileRecordDto prepareUserRootFolder(User user) {
-
-        try {
-            // Create an actual folder/directory in fyle_system
-            String rootFolderName = user.getUsername();
-            fileSystemUtil.createUserRootFolder(rootFolderName);
-
-            // Save a record about the created root folder in db
-            FileRecord rootFolderRecord = new FileRecord();
-            rootFolderRecord.setId(rootFolderName);
-            rootFolderRecord.setName(rootFolderName);
-
-            LocalDateTime _now = LocalDateTime.now();
-            rootFolderRecord.setCreatedAt(_now);
-            rootFolderRecord.setUpdatedAt(_now);
-
-            rootFolderRecord.setOwner(user);
-            rootFolderRecord.setStatus(statusRepository.findByCode(Status.Code.ENABLED));
-            rootFolderRecord.setFileType(FileType.FOLDER);
-
-            return toDto(fileRepository.save(rootFolderRecord));
-        } catch (IOException ex) {
-            throw new SystemException(ex, "Error creating a root folder for a user [" + user.getUsername() + "]");
-        }
-    }
-
     @Transactional
     public FileRecordDto createFolder(User user, String parentId, String folderName) {
 
-        // First we create folderRecord
-        FileRecord folderRecord = new FileRecord();
-        folderRecord.setId(UUID.randomUUID().toString());
-        folderRecord.setName(folderName);
+        Status enabled = statusRepository.findByCode(Status.Code.ENABLED);
 
-        LocalDateTime _now = LocalDateTime.now();
-        folderRecord.setCreatedAt(_now);
-        folderRecord.setUpdatedAt(_now);
-        folderRecord.setOwner(user);
-        folderRecord.setStatus(statusRepository.findByCode(Status.Code.ENABLED));
+        // First we create folderRecord
+        FileRecord folderRecord = FileRecord.createFolder(UUID.randomUUID().toString(), folderName, user, enabled);
 
         FileRecord savedFolderRecord = fileRepository.save(folderRecord);
 
@@ -279,26 +268,22 @@ public class FileService {
     private FileRecord toFile(User owner, MultipartFileDecorator savedFile) {
         MultipartFile mFile = savedFile.getMultipartFile();
 
-        FileRecord fileRecord = new FileRecord();
-        fileRecord.setId(savedFile.getName());
-        fileRecord.setName(mFile.getOriginalFilename());
-        fileRecord.setExtension(extractExt(mFile.getOriginalFilename()));
-        fileRecord.setOwner(owner);
-        fileRecord.setSize(mFile.getSize());
-        fileRecord.setStatus(statusRepository.findByCode(Status.Code.ENABLED));
+        Status enabled = statusRepository.findByCode(Status.Code.ENABLED);
 
-        LocalDateTime _now = LocalDateTime.now();
-        fileRecord.setCreatedAt(_now);
-        fileRecord.setUpdatedAt(_now);
-
-        return fileRecord;
+        return FileRecord.createFile(
+                savedFile.getName(),
+                mFile.getOriginalFilename(),
+                extractExt(mFile.getOriginalFilename()),
+                mFile.getSize(),
+                owner, enabled
+        );
     }
 
-    private FileRecordDto toDto(FileRecord fileRecord) {
+    private FileRecordDto toDto (FileRecord fileRecord) {
         FileRecordDto dto = new FileRecordDto();
         dto.setId(fileRecord.getId());
         dto.setName(fileRecord.getName());
-        dto.setType(FileType.FILE);
+        dto.setType(fileRecord.getFileType());
         dto.setSize(fileRecord.getSize());
         dto.setLastUpdate(fileRecord.getUpdatedAt());
         return dto;

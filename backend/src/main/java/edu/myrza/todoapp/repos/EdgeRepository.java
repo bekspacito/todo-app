@@ -15,12 +15,12 @@ import java.util.Set;
 @Repository
 public interface EdgeRepository extends JpaRepository<Edge, String> {
 
-    @Query("select e.ancestor from Edge e where e.descendant = :descendantId")
+    @Query("select e.ancestor from Edge e where e.descendant.id = :descendantId")
     Set<FileRecord> serveAncestors(@Param("descendantId") String fileId);
 
-    @Query("select e.descendant from Edge e where e.ancestor.id=:ancestorId")
+    @Query("select e.descendant from Edge e where e.ancestor.id = :ancestorId and e.descendant.status.code <> 'DELETED' ")
     Set<FileRecord> serveAllDescendants(@Param("ancestorId") String ancestorId);
 
-    @Query("select e.descendant from Edge e where e.ancestor.id=:folderId and e.edgeType=:edgeType")
+    @Query("select e.descendant from Edge e where e.ancestor.id = :folderId and e.descendant.status.code <> 'DELETED' and e.edgeType = :edgeType")
     List<FileRecord> serveDescendants(@Param("folderId") String folderId, @Param("edgeType") EdgeType edgeType);
 }

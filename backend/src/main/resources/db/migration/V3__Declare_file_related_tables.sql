@@ -2,7 +2,7 @@
 create table file (
     id varchar(63) not null primary key,
     name varchar(127) not null,
-    ext varchar(63) not null,
+    ext varchar(63),
     size bigint not null,
     created_at timestamp not null,
     updated_at timestamp not null,

@@ -54,7 +54,7 @@ public class FileSystemUtil {
 
     public File serveFile(String path, String fileId, String extenstion) {
 
-        Path src = Paths.get(root, path, fileId + extenstion);
+        Path src = Paths.get(root, path, fileId);
         if(!Files.exists(src)) {
             throw new RuntimeException("File not found, throw some appropriate exception here and handle it");
         }

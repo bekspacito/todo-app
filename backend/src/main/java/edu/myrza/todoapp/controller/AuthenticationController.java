@@ -68,20 +68,6 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerNewUser(@RequestBody RegistrationRequest req) {
-
-        String username = req.getUsername();
-        String password = req.getPassword();
-        String email = req.getEmail();
-
-        // Create user
-        User user = userService.createUser(username, password, email);
-
-        // Create root folder for a user
-        FileRecordDto root = fileService.prepareUserRootFolder(user);
-
-        // If the execution reached here then everything went fine
-        String token = jwtUtil.generateToken(user);
-
-        return ResponseEntity.ok(new RegistrationResponse(username, email, token, root.getId()));
+        return ResponseEntity.ok(userService.registerUser(req));
     }
 }
